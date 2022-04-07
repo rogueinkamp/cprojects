@@ -1,4 +1,6 @@
+import timeit
 import random
+
 
 def convert_mac_address_to_standard_format(maybe_mac_address: str) -> str:
     """Take anything that appears to be a MAC address and converts it to standard format.
@@ -29,7 +31,7 @@ def convert_mac_address_to_standard_format(maybe_mac_address: str) -> str:
 
 def generate_mac_addresses():
     mac_addresses = []
-    for _ in range(1, 10000000):
+    for _ in range(1, 1000000):
         mac_addresses.append(
             "52.54.00.%02x.%02x.%02x" % (
                 random.randint(0, 255),
@@ -41,9 +43,13 @@ def generate_mac_addresses():
     return mac_addresses
 
 
-if __name__ == "__main__":
-    # mac_address_str = "00.80.41.ae.fd"
+def main():
     for mac_address_str in generate_mac_addresses():
         convert_mac_address_to_standard_format(
             mac_address_str
         )
+
+
+if __name__ == "__main__":
+    # mac_address_str = "00.80.41.ae.fd"
+    main()
