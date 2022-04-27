@@ -11,8 +11,12 @@ struct NetworkAndMaskBits {
     int mask_bits;
 };
 
-void showbits(unsigned int x )
-{
+struct NetworkToMask {
+    char network_address[INET_ADDRSTRLEN];
+    int mask_bits;
+};
+
+void showbits(unsigned int x) {
     int i=0;
     for (i = (sizeof(int) * 8) - 1; i >= 0; i--)
     {
@@ -39,27 +43,9 @@ struct NetworkAndMaskBits get_network_addr_and_mask_bits(const char *interface_i
 	uint32_t ip_int;
 	uint32_t netb;
 	uint32_t mask_bits = 32;
-	/* uint32_t prefix = 27; */
-	
-    /* 
-    int has_mask = 0;
-    for (int i = 0; i < strlen(ip_address_cidr_string); i++) {
-        if (strcmp(&ip_address_cidr_string[i], "/") == 1)
-            break;
-    }
-    */
-
-    /* printf("ok4 - %s\n", interface_ip_address_string); */
     strcpy(ip_address_cidr_string, interface_ip_address_string);
     strtok_r(ip_address_cidr_string, "/", &prefix);
-
-    /* printf("ok5 - %s\n", ip_address_cidr_string); */
     sscanf(prefix, "%d", &prefix_int);
-
-    // Not sure this works
-    /* scanf("%" SCNd32, &prefix_int); */
-
-    /* printf("ok6 - PREFIX_INT: %d\n", prefix_int); */
 	inet_pton(AF_INET, ip_address_cidr_string, &ip_int);
 	ip_int = ntohl(ip_int);
 	/* printBits(ip_int); */
@@ -140,7 +126,6 @@ int main() {
             json_object *device_element = json_object_array_get_idx(device_networks_root, j);
             json_object *device_address = json_object_object_get(device_element, "address");
             const char *interface_ip_address_string = json_object_get_string(device_address);
-
 
             char ensure_chars[] = "/";
             // Ensure that there is a / in the ip network string or this wont work
