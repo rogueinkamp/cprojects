@@ -4,9 +4,10 @@
 #include <json-c/json_object.h>
 #include <arpa/inet.h>
 #include <string.h>
+#include <inttypes.h>
 
 struct NetworkAndMaskBits {
-    char network_address[200];
+    char network_address[INET_ADDRSTRLEN];
     int mask_bits;
 };
 
@@ -23,65 +24,70 @@ void showbits(unsigned int x )
 
 struct NetworkAndMaskBits get_network_addr_and_mask_bits(const char *interface_ip_address_string) {
     // do stuff
-    char ip_address_cidr_string[200];
-    char *mask_bits;
-    uint32_t mask_bits_int;
+    char ip_address_cidr_string[INET_ADDRSTRLEN];
+    char *prefix;
+    uint32_t prefix_int;
     uint32_t converted_ip_int;
     uint32_t network_bits;
     uint32_t shifted;
     int network_address_binary;
     struct in_addr ip_addr;
     struct NetworkAndMaskBits r;
-    struct sockaddr_in sa;
-    /* char str[INET_ADDRSTRLEN]; */
+    /* struct sockaddr_in sa; */
+	/* char ip[INET_ADDRSTRLEN] = "192.168.1.67"; */
+	char ipNet[INET_ADDRSTRLEN];
+	uint32_t ip_int;
+	uint32_t netb;
+	uint32_t mask_bits = 32;
+	/* uint32_t prefix = 27; */
+	
+    /* 
+    int has_mask = 0;
+    for (int i = 0; i < strlen(ip_address_cidr_string); i++) {
+        if (strcmp(&ip_address_cidr_string[i], "/") == 1)
+            break;
+    }
+    */
 
-   char network_address[16];
-
-
+    /* printf("ok4 - %s\n", interface_ip_address_string); */
     strcpy(ip_address_cidr_string, interface_ip_address_string);
-    strtok_r(ip_address_cidr_string, "/", &mask_bits);
+    strtok_r(ip_address_cidr_string, "/", &prefix);
 
-    sscanf(mask_bits, "%d", &mask_bits_int);
+    /* printf("ok5 - %s\n", ip_address_cidr_string); */
+    sscanf(prefix, "%d", &prefix_int);
 
-    // store this IP address in sa:
-    inet_pton(AF_INET, ip_address_cidr_string, &(sa.sin_addr));
-    converted_ip_int = sa.sin_addr.s_addr;
+    // Not sure this works
+    /* scanf("%" SCNd32, &prefix_int); */
 
-    /* strcpy(r.network_address, ip_address_cidr_string); */
-
-    /* showbits(converted_ip_int); */
-    shifted = ((0xFFFFFFFFF << (32 - mask_bits_int)) & 0xFFFFFFFFF);
-    showbits(shifted);
-    network_address_binary = (sa.sin_addr.s_addr & shifted);
-    showbits(network_address_binary);
-
-    /* src.sin_addr.s_addr = network_address_binary; */
-    /* char *network_address = inet_ntoa(ip_addr); */
-
-    sa.sin_addr.s_addr=network_address_binary;
-    inet_ntop(AF_INET, &sa.sin_addr, network_address, INET_ADDRSTRLEN);
-    showbits(network_address_binary);
-    /* inet_ntop(AF_INET, &network_address_binary, network_address, INET_ADDRSTRLEN); */
-
-   /* char network_address[16]; */
-   /* unsigned char bytes[4]; */
-   /* int i; */
-   /* for(i=0; i<4; i++) { */
-   /*    bytes[i] = (network_address_binary >> i*8) & 0xFF; */
-   /* } */
-   /*  sprintf(network_address, "%d.%d.%d.%d\n", bytes[3], bytes[2], bytes[1], bytes[0]); */
+    /* printf("ok6 - PREFIX_INT: %d\n", prefix_int); */
+	inet_pton(AF_INET, ip_address_cidr_string, &ip_int);
+	ip_int = ntohl(ip_int);
+	/* printBits(ip_int); */
+	unsigned long mask = (
+		0xFFFFFFFF << (mask_bits - prefix_int)) & 0xFFFFFFFF;
+	/* printBits(mask); */
+	netb = ip_int & mask;
+	netb = ntohl(netb);
+	/* printBits(netb); */
+	inet_ntop(
+		AF_INET,
+		&netb,
+		ipNet,
+		INET_ADDRSTRLEN
+	);
     printf(
         "ORINGINAL: %s HOST_PORTION: '%s'  MASK_BITS: '%d' NETWORK_BITS: %d SHIFTED: %d, NETWORK_ADDRESS: %s\n",
         interface_ip_address_string,
         ip_address_cidr_string,
-        mask_bits_int,
+        prefix_int,
         network_bits,
         shifted,
-        network_address
+        ipNet
     );
-
-    /* r.mask= 10; */
+    r.mask_bits = mask_bits;
+    strcpy(r.network_address, ipNet);
     return r;
+
 }
 
 int main() {
@@ -131,17 +137,34 @@ int main() {
 
         /* printf("JSON_ADDRESS: %s | CONVERTED_INT=%i\n", address_str, converted_ip_int); */
         for (int j = 0; j < device_networks_root_count; j++) {
-            /* char network_address[12]; */
-            /* uint32_t mask_bits; */
             json_object *device_element = json_object_array_get_idx(device_networks_root, j);
             json_object *device_address = json_object_object_get(device_element, "address");
             const char *interface_ip_address_string = json_object_get_string(device_address);
-            /* printf("NETWORK_FROM_DEVICE: %s\n", interface_ip_address_string); */
 
+
+            char ensure_chars[] = "/";
+            // Ensure that there is a / in the ip network string or this wont work
+            int valid = 0;
+            for (int i = 0; i < strlen(interface_ip_address_string) && !(valid == 1); i++) {
+                char * pch;
+                pch = strchr(ensure_chars, interface_ip_address_string[i]);
+                if (pch != NULL) {
+                    valid = 1;
+                }
+            }
+
+            /* printf("ok2\n"); */
             struct NetworkAndMaskBits ret_struct;
-            ret_struct = get_network_addr_and_mask_bits(interface_ip_address_string);
+            if (valid == 1) {
+                /* printf("ok3\n"); */
+                ret_struct = get_network_addr_and_mask_bits(interface_ip_address_string);
+            } else {
+                /* printf("nok3\n"); */
+                printf("INVALID: %s\n", interface_ip_address_string);
+            }
+
             /* printf("Network Address: %s | Mask_Bits: %d\n", ret_struct.network_address, ret_struct.mask_bits); */
-        };
-    };
+        }
+    }
     return 0;
 }
