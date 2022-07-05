@@ -34,11 +34,8 @@ struct NetworkAndMaskBits get_network_addr_and_mask_bits(const char *interface_i
     uint32_t converted_ip_int;
     uint32_t network_bits;
     uint32_t shifted;
-    int network_address_binary;
     struct in_addr ip_addr;
     struct NetworkAndMaskBits r;
-    /* struct sockaddr_in sa; */
-	/* char ip[INET_ADDRSTRLEN] = "192.168.1.67"; */
 	char ipNet[INET_ADDRSTRLEN];
 	uint32_t ip_int;
 	uint32_t netb;
@@ -148,7 +145,7 @@ int main() {
                 printf("INVALID: %s\n", interface_ip_address_string);
             }
 
-            /* printf("Network Address: %s | Mask_Bits: %d\n", ret_struct.network_address, ret_struct.mask_bits); */
+            printf("Network Address: %s | Mask_Bits: %d\n", ret_struct.network_address, ret_struct.mask_bits);
         }
     }
     return 0;
