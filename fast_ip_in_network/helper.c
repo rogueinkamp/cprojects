@@ -21,13 +21,18 @@ net is the Network IP address
 
 */
 unsigned ip_in_network(const char* addr, const char* net, int mask_len) {
-    addr = "192.168.0.71";
-    net = "192.168.0.64";
-    mask_len = 27;
+
+
+    // Let us ensure that we have a mask len
+    if (!mask_len || mask_len == 0) {
+        printf("NO_MASK_LEN: %i", mask_len);
+        return 0;
+
+    }
+
+    // Let us ensure that the network is actually cidr
     char _addr_repr[INET_ADDRSTRLEN];
-    /* strncpy(_addr_repr, addr, strlen(addr)); */
     snprintf(_addr_repr, INET_ADDRSTRLEN, "%s", addr);
-    /* printf("addr=%s _addr_repr=%s\n", addr, _addr_repr); */
     int _mask_len;
 	char network[32];
 	struct in_addr ip_addr;
@@ -39,16 +44,19 @@ unsigned ip_in_network(const char* addr, const char* net, int mask_len) {
 	        printf("ret -> %i\n", ret);
             return false;
     }
+    
+
+    // Let us determine whether the network address is CIDR representation
+    // Note that it should NOT be but we should due our due dilligence to ensure that
 	strncpy(network, net, strlen(net));
     char * bits;
     char * char_addr = (char*)addr;
-    /* printf("char_addr=%s\n", char_addr );  */
     char * _network = strtok_r(char_addr, "/", &bits);
     printf("NETWORK=%s BITS=%s\n", _network, bits);
 
-	if (bits) {
+	if (*bits != 0) {
         printf(
-            "CHECK_IP_ADDRESS_CIDR | CIDR=True | addr=%s set mask_len to input of function %s\n",
+            "CHECK_IP_ADDRESS_CIDR | CIDR=True | addr=%s bits=%s \n",
             _addr_repr,
             bits
         );
@@ -137,5 +145,17 @@ int main() {
         net_addr_and_mask.mask_bits
     );
     printf("IN NETWORK %i\n", _ip_in_network);
+    char test_ip_cidr_2[INET_ADDRSTRLEN] = "192.168.0.71";
+    char test_ip_network_2[INET_ADDRSTRLEN] = "192.168.0.64/27";
+
+    struct NetworkAndMaskBits net_addr_and_mask_2 = get_network_addr_and_mask_bits(test_ip_cidr_2);
+    /* char mask_bits_char[100]; */
+    /* sprintf(mask_bits_char, "%d", net_addr_and_mask.mask_bits); */
+    unsigned _ip_in_network_2 = ip_in_network(
+        test_ip_cidr_2,
+        net_addr_and_mask_2.network_address,
+        net_addr_and_mask_2.mask_bits
+    );
+    printf("IN NETWORK %i\n", _ip_in_network_2);
     return 1;
 }
