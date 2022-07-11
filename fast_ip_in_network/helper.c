@@ -1,4 +1,6 @@
- #include <netinet/in.h>
+// vim: ts=4 sw=4 sts=2 sr noet ai si
+
+#include <netinet/in.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -20,9 +22,7 @@ addr is the IP address to check as single IP not in CIDR format
 net is the Network IP address
 
 */
-unsigned ip_in_network(const char* addr, const char* net, int mask_len) {
-
-
+unsigned ip_in_network(const char* addr, const char* net, int mask_len, int debug) {
     // Let us ensure that we have a mask len
     if (!mask_len || mask_len == 0) {
         printf("NO_MASK_LEN: %i", mask_len);
@@ -37,14 +37,19 @@ unsigned ip_in_network(const char* addr, const char* net, int mask_len) {
 	char network[32];
 	struct in_addr ip_addr;
 
-    printf("input | addr=%s, net=%s, mask_len=%i\n", addr, net, mask_len);
-	int ret = inet_aton(addr, &ip_addr);
-    printf("ret -> %i\n", ret);
-	if (!ret) {
-	        printf("ret -> %i\n", ret);
-            return false;
+    if (debug == 1) {
+        printf("INPUT | addr=%s, net=%s, mask_len=%i\n", addr, net, mask_len);
     }
-    
+
+    // Store the addr in as binary data so we can do bitwise on it
+    // NOTE: that this will fail if addr is a cidr string
+	int ret = inet_aton(addr, &ip_addr);
+	if (!ret) {
+        printf("CONVERT_IP_TO_BINARY=False | inet_aton_ret_val=%i\n", ret);
+        return false;
+    } else {
+        printf("CONVERT_IP_TO_BINARY=True | inet_aton_ret_val=%i\n", ret);
+    }
 
     // Let us determine whether the network address is CIDR representation
     // Note that it should NOT be but we should due our due dilligence to ensure that
@@ -52,7 +57,6 @@ unsigned ip_in_network(const char* addr, const char* net, int mask_len) {
     char * bits;
     char * char_addr = (char*)addr;
     char * _network = strtok_r(char_addr, "/", &bits);
-    printf("NETWORK=%s BITS=%s\n", _network, bits);
 
 	if (*bits != 0) {
         printf(
@@ -63,14 +67,13 @@ unsigned ip_in_network(const char* addr, const char* net, int mask_len) {
         int _mask_len = atoi(bits);
     } else {
         printf(
-            "CHECK_IP_ADDR_CIDR | CIDR=False | addr=%s set mask_len to int of network bits of cidr portion of addr %s\n",
+            "CHECK_IP_ADDR_CIDR | CIDR=False | addr=%s set mask_len to int of "
+            "network bits of cidr portion of addr %s\n",
             _addr_repr,
             bits
         );
         _mask_len = mask_len;
     }
-
-    printf("_mask_len = %i\n", _mask_len);
 
 	struct in_addr net_addr;
 	int ret2= inet_aton(network, &net_addr);
@@ -134,6 +137,7 @@ struct NetworkAndMaskBits get_network_addr_and_mask_bits(const char *interface_i
 
 
 int main() {
+    int debug = 1;
     char test_ip_cidr[INET_ADDRSTRLEN] = "192.168.0.22/27";
     char test_ip_network[INET_ADDRSTRLEN] = "192.168.0.64/27";
     struct NetworkAndMaskBits net_addr_and_mask = get_network_addr_and_mask_bits(test_ip_cidr);
@@ -142,7 +146,8 @@ int main() {
     unsigned _ip_in_network = ip_in_network(
         test_ip_cidr,
         net_addr_and_mask.network_address,
-        net_addr_and_mask.mask_bits
+        net_addr_and_mask.mask_bits,
+        debug
     );
     printf("IN NETWORK %i\n", _ip_in_network);
     char test_ip_cidr_2[INET_ADDRSTRLEN] = "192.168.0.71";
@@ -154,7 +159,8 @@ int main() {
     unsigned _ip_in_network_2 = ip_in_network(
         test_ip_cidr_2,
         net_addr_and_mask_2.network_address,
-        net_addr_and_mask_2.mask_bits
+        net_addr_and_mask_2.mask_bits,
+        debug
     );
     printf("IN NETWORK %i\n", _ip_in_network_2);
     return 1;
