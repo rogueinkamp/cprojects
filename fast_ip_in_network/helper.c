@@ -4,8 +4,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <stdlib.h>
-#include<ctype.h>
-
+#include <ctype.h>
 #include <stdbool.h>
 
 struct IPObject {
@@ -36,7 +35,6 @@ unsigned ip_in_network(const char* address_to_check, const char* network_address
     }
 
     // Store the addr in as binary data so we can do bitwise on it
-    // NOTE: that this will fail if addr is a cidr string
 	inet_aton_result = inet_aton(address_to_check, &_address_to_check);
 	if (!inet_aton_result) {
         printf("CONVERT_IP_TO_BINARY=False | inet_aton_ret_val=%i\n", inet_aton_result);
@@ -51,8 +49,12 @@ unsigned ip_in_network(const char* address_to_check, const char* network_address
     } else {
         printf("CONVERT_NETWORK_IP_TO_BINARY=True | inet_aton_ret_val=%i\n", inet_aton_result);
     }
+
+	// inet_aton stores in network-byte order which is reversed and will be incorrect for bitwise
+	// nthol will correct this
 	uint32_t ip_bits = ntohl(_address_to_check.s_addr);
 	uint32_t network_bits = ntohl(_network_address.s_addr);
+
 	uint32_t mask = (0xFFFFFFFF << (32 - mask_len)) & 0xFFFFFFFF;
     uint32_t res = ((network_bits & mask) == (ip_bits & mask));
     if (debug == 1) {
@@ -70,7 +72,7 @@ unsigned ip_in_network(const char* address_to_check, const char* network_address
 
 
 struct IPObject get_network_addr_and_mask_bits(const char *ip_addr_with_cidr) {
-    // do stuff
+    // Construct IP Object with data about an IP address and netmask in CIDR form
     char ip_address_cidr_string[32];
     char host_address[32];
     char *prefix;
@@ -83,27 +85,23 @@ struct IPObject get_network_addr_and_mask_bits(const char *ip_addr_with_cidr) {
 	uint32_t ip_int;
 	uint32_t netb;
 	uint32_t mask_bits = 32;
+	uint32_t mask;
 
     strcpy(ip_address_cidr_string, ip_addr_with_cidr);
 
     // Split up the CIDR string where the prefix (mask bits) go to prefix var
     // ip_address_cidr_string is left with the host_address
-    /* printf("ip_address_cidr_string: %s\n", ip_address_cidr_string); */
     strtok_r(ip_address_cidr_string, "/", &prefix);
-    /* printf("ip_address_cidr_string after strtok_r: %s\n", ip_address_cidr_string); */
 
     // copy to own var as it ip_address_cidr_string no longer has cidr
 	strcpy(host_address, ip_address_cidr_string);
-    /* printf("host_address after strtok_r: %s\n", host_address); */
     sscanf(prefix, "%d", &prefix_int);
+
 	inet_pton(AF_INET, ip_address_cidr_string, &ip_int);
 	ip_int = ntohl(ip_int);
-	/* printBits(ip_int); */
-	uint32_t mask = (0xFFFFFFFF << (mask_bits - prefix_int)) & 0xFFFFFFFF;
-	/* printBits(mask); */
+	mask = (0xFFFFFFFF << (mask_bits - prefix_int)) & 0xFFFFFFFF;
 	netb = ip_int & mask;
 	netb = ntohl(netb);
-	/* printBits(netb); */
 	inet_ntop(
 		AF_INET,
 		&netb,
@@ -119,7 +117,6 @@ struct IPObject get_network_addr_and_mask_bits(const char *ip_addr_with_cidr) {
         mask,
         network_address
     );
-    /* strcpy(r.host_address, host_address); */
     strcpy(r.network_address, network_address);
     r.mask_bits = prefix_int;
     return r;
@@ -137,9 +134,9 @@ int main() {
         ip_object.mask_bits,
         debug
     );
-    /* printf("IN NETWORK A %i\n", _ip_in_network); */
     char test_network_2[32] = "192.168.100.32/27";
     char check_this_ip_2[INET_ADDRSTRLEN] = "192.168.100.20";
+
     printf("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 
     struct IPObject ip_object_2 = get_network_addr_and_mask_bits(test_network_2);
@@ -149,6 +146,5 @@ int main() {
         ip_object_2.mask_bits,
         debug
     );
-    /* printf("IN NETWORK B %i\n", _ip_in_network_2); */
     return 1;
 }
