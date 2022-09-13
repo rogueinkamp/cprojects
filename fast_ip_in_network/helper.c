@@ -18,12 +18,11 @@ struct IPObject {
 unsigned ip_in_network(const char* address_to_check, const char* network_address, int mask_len, int debug) {
     // Let us ensure that we have a mask len
     if (!mask_len || mask_len == 0) {
-        printf("NO_MASK_LEN: %i", mask_len);
+        printf("NO_MASK_LEN: %i\n", mask_len);
         return 0;
 
     }
     int inet_aton_result;
-    int _mask_len;
 
     char _addr_repr[INET_ADDRSTRLEN];
     snprintf(_addr_repr, INET_ADDRSTRLEN, "%s", address_to_check);
